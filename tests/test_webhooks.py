@@ -1,7 +1,6 @@
 """
 Tests for webhook handling and idempotency.
 """
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 

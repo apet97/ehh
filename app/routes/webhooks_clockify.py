@@ -1,7 +1,7 @@
 """
 Dedicated Clockify webhook router with validation, idempotency, and normalization.
 """
-from fastapi import APIRouter, Request, Header, HTTPException
+from fastapi import APIRouter, Request, Header
 from typing import Optional, Dict, Any
 from collections import OrderedDict
 import logging
@@ -60,7 +60,7 @@ def _normalize_clockify_event(payload: Dict[str, Any]) -> Dict[str, Any]:
         event_type = "APPROVAL_REQUEST"
 
     # Client events
-    elif "name" in payload and "archived" in payload and not "tasks" in payload:
+    elif "name" in payload and "archived" in payload and "tasks" not in payload:
         event_type = "CLIENT"
 
     # Tag events

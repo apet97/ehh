@@ -12,8 +12,6 @@ from app.config import settings
 from app import scheduler as sched
 from app.routes import actions as actions_routes
 from app.routes import webhooks_clockify
-from app.integrations import slack  # populate registry
-from app.integrations import clockify  # populate registry
 from app.integrations.base import get_integration
 from app.models import WebhookEnvelope, ApiResponse
 from app.middleware.ratelimit import RateLimitMiddleware
@@ -145,7 +143,7 @@ async def webhook(request: Request, provider: str, env: WebhookEnvelope):
         if provider == "clockify":
             # Redirect to dedicated endpoint
             logger.info(
-                f"Redirecting legacy webhook to dedicated Clockify endpoint"
+                "Redirecting legacy webhook to dedicated Clockify endpoint"
             )
 
         integ = get_integration(provider)

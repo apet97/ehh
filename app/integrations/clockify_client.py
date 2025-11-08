@@ -1,7 +1,6 @@
 """
 Async Clockify API client with retry logic and error mapping.
 """
-import os
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional

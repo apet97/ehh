@@ -2,9 +2,8 @@
 Pydantic models for Clockify API types.
 Minimal subset based on common operations.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional, List
-from datetime import datetime
 
 
 class ClockifyUser(BaseModel):
