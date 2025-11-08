@@ -5,6 +5,195 @@ All notable changes to Clankerbot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-11-08
+
+### Security
+
+#### Supply Chain Security
+- **SBOM (Software Bill of Materials)** generation with Syft
+  - CycloneDX format SBOM attached to all container images
+  - Includes complete dependency tree with licenses and versions
+  - Automated generation in CI/CD pipeline
+
+- **Container image scanning with Trivy**
+  - Vulnerability scanning for OS packages and application dependencies
+  - Critical and high severity vulnerability detection
+  - Failed builds on critical vulnerabilities in CI
+
+- **Image signing with Cosign**
+  - All container images signed with keyless signing
+  - GitHub Actions OIDC integration for secure signing
+  - Verification instructions in QUICKSTART.md
+
+- **GitHub Container Registry (GHCR) publishing**
+  - Official images published to ghcr.io/your-org/clankerbot
+  - Multi-architecture support (amd64, arm64)
+  - Semantic version tags and latest tag
+  - Signed images with attestations
+
+#### Application Security
+- **IP allowlist for webhooks**
+  - CIDR-based IP filtering via `WEBHOOK_IP_ALLOWLIST`
+  - Supports multiple ranges (comma-separated)
+  - Blocks unauthorized webhook sources
+
+- **Request size limits**
+  - Configurable max request body size via `MAX_REQUEST_SIZE_MB`
+  - Default: 1MB to prevent DoS attacks
+  - 413 Payload Too Large response on violations
+
+- **Rate limit burst capacity**
+  - Configurable burst via `RATE_LIMIT_BURST` (default: 30)
+  - Token bucket algorithm with burst allowance
+  - Smoother handling of traffic spikes
+
+### Added
+
+#### Developer Experience
+- **Comprehensive API documentation** (`docs/API.md`)
+  - Complete endpoint reference with examples
+  - Error code catalog with HTTP status mappings
+  - Request/response envelope documentation
+  - Authentication and rate limiting guides
+  - Code examples in multiple languages
+
+- **Copy as cURL buttons** in manual testing UI
+  - Generate cURL commands for Parser, Action Runner, and Webhook endpoints
+  - Clipboard integration with visual feedback
+  - Automatically includes headers and formatted JSON payloads
+
+- **GHCR pull examples** in QUICKSTART.md
+  - Instructions for pulling from GitHub Container Registry
+  - Image verification with Cosign
+  - SBOM download examples
+  - Available tag documentation
+
+- **Helm values reference** in QUICKSTART.md
+  - Common configuration patterns
+  - High availability setup examples
+  - Security best practices
+  - Observability configuration
+
+#### Observability
+- **Prometheus metrics endpoint** (`/metrics`)
+  - Opt-in via `METRICS_ENABLED=true`
+  - HTTP request metrics (count, duration, status)
+  - FastAPI instrumentation with prometheus-fastapi-instrumentator
+  - Ready for Prometheus scraping and Grafana dashboards
+
+- **Smoke test for metrics endpoint**
+  - Automated validation of `/metrics` endpoint in smoke tests
+  - Checks for Prometheus format output
+  - Conditional test based on `METRICS_ENABLED` flag
+
+#### Testing
+- **End-to-end tests in CI/CD**
+  - Full service deployment with Docker Compose in CI
+  - Smoke tests run against live service
+  - Health check validation
+  - Webhook idempotency testing
+
+- **k6 load testing setup**
+  - Performance test scenarios for all endpoints
+  - Configurable VUs (virtual users) and duration
+  - Success rate and latency reporting
+  - CI integration ready
+
+#### Kubernetes
+- **Horizontal Pod Autoscaler (HPA)**
+  - CPU and memory-based auto-scaling
+  - Configurable min/max replicas
+  - Target utilization thresholds
+  - Helm chart support for HPA configuration
+
+- **Pod Disruption Budget (PDB)**
+  - Ensures minimum availability during node maintenance
+  - Configurable `minAvailable` or `maxUnavailable`
+  - Protection against accidental downtime
+  - Enabled by default in Helm chart
+
+### Changed
+
+- **Enhanced smoke test script** (`scripts/smoke.sh`)
+  - Added metrics endpoint test
+  - Improved test output with colored results
+  - Better error reporting with response bodies
+  - Exit non-zero on any failure
+
+- **Improved manual testing UI** (`tools/manual.html`)
+  - Version updated to 0.2.1
+  - Copy as cURL functionality for all API sections
+  - Better button styling and user feedback
+  - Enhanced developer experience
+
+- **Updated documentation**
+  - QUICKSTART.md now includes GHCR examples
+  - Helm values reference with common configurations
+  - API.md comprehensive endpoint documentation
+  - Security best practices documented
+
+### Dependencies
+
+- **Observability**
+  - Added prometheus-fastapi-instrumentator for metrics
+
+- **Security**
+  - Trivy for vulnerability scanning (CI only)
+  - Cosign for image signing (CI only)
+  - Syft for SBOM generation (CI only)
+
+### CI/CD
+
+- **GitHub Actions enhancements**
+  - SBOM generation and attachment to releases
+  - Trivy vulnerability scanning
+  - Cosign keyless signing
+  - Multi-architecture builds (amd64, arm64)
+  - GHCR publishing with semantic versioning
+  - End-to-end testing with smoke tests
+  - k6 load testing (optional)
+
+- **Security scanning**
+  - Gitleaks for secrets detection
+  - Trivy for container vulnerabilities
+  - Fail on critical vulnerabilities
+
+- **Image attestations**
+  - SBOM attestations attached to images
+  - Provenance information from GitHub Actions
+  - Verifiable with Cosign
+
+### Documentation
+
+- **New files**
+  - `docs/API.md` - Comprehensive API reference
+  - Enhanced `docs/QUICKSTART.md` with GHCR and Helm sections
+
+- **Updated files**
+  - `scripts/smoke.sh` - Added metrics test
+  - `tools/manual.html` - Added cURL copy functionality
+  - `docs/CHANGELOG.md` - This file
+
+### Operations
+
+- **Monitoring recommendations**
+  - Prometheus metrics for request rate and latency
+  - Health check endpoints for liveness/readiness
+  - Error rate tracking via `ok=false` responses
+  - Rate limit violations via 429 responses
+
+- **High availability**
+  - HPA for automatic scaling based on load
+  - PDB to maintain minimum availability
+  - Multi-replica deployments recommended
+  - Pod anti-affinity for node distribution
+
+- **Security hardening**
+  - IP allowlisting for webhook sources
+  - Request size limits to prevent DoS
+  - Rate limiting with burst capacity
+  - Signed container images with verification
+
 ## [0.2.0] - 2025-11-08
 
 ### Added

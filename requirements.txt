@@ -6,6 +6,7 @@ python-dotenv
 apscheduler
 pyyaml
 pydantic-settings
+prometheus-fastapi-instrumentator
 pytest
 pytest-asyncio
 pytest-cov

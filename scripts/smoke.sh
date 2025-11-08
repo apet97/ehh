@@ -159,6 +159,22 @@ else
     echo "$BODY"
 fi
 
+# Test 8: Metrics endpoint (if enabled)
+if [ -n "$METRICS_ENABLED" ] && [ "$METRICS_ENABLED" = "true" ]; then
+    log_test "8. Metrics endpoint (/metrics)"
+    RESPONSE=$(curl -s -w "\n%{http_code}" "$BASE_URL/metrics")
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | head -n-1)
+    if [ "$HTTP_CODE" = "200" ] && echo "$BODY" | grep -q -E "(http_requests_total|TYPE|HELP)"; then
+        log_pass "Metrics endpoint works (Prometheus format)"
+    else
+        log_fail "Metrics endpoint failed (HTTP $HTTP_CODE)"
+        echo "$BODY"
+    fi
+else
+    log_test "8. Metrics endpoint (skipped - METRICS_ENABLED not set)"
+fi
+
 # Summary
 echo ""
 echo "========================================"

@@ -18,6 +18,8 @@ from app.routes import webhooks_clockify
 from app.integrations.base import get_integration
 from app.models import WebhookEnvelope, ApiResponse
 from app.middleware.ratelimit import RateLimitMiddleware
+from app.middleware.request_size import RequestSizeLimitMiddleware
+from app.observability.metrics import setup_metrics
 
 load_dotenv()
 configure_logging()
@@ -25,6 +27,9 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Clankerbot", version="0.2")
+
+# Setup Prometheus metrics if enabled
+setup_metrics(app)
 
 
 # Request ID and logging middleware
@@ -64,15 +69,22 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         return response
 
 
-# Add middleware
+# Add middleware (order matters: applied in reverse)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     RateLimitMiddleware,
     capacity=settings.RATE_LIMIT_PER_MINUTE,
+    burst=settings.RATE_LIMIT_BURST,
 )
+app.add_middleware(RequestSizeLimitMiddleware)
 
 # CORS
 origins = [s.strip() for s in settings.CORS_ORIGINS.split(",") if s.strip()]
+if not origins or not any(origins):
+    # Default to common development ports if CORS_ORIGINS is empty
+    origins = ["http://localhost:3000", "http://localhost:8080"]
+    logger.info("CORS_ORIGINS not set, using defaults: localhost:3000, localhost:8080")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -94,6 +106,19 @@ async def health(request: Request):
     """Basic health check."""
     req_id = get_request_id(request.headers.get("x-request-id"))
     return ApiResponse.success(data={"status": "healthy"}, request_id=req_id)
+
+
+@app.get("/metrics", include_in_schema=True, tags=["observability"])
+async def metrics_endpoint():
+    """
+    Prometheus metrics endpoint.
+
+    Exposed when METRICS_ENABLED=true environment variable is set.
+    Returns metrics in Prometheus exposition format.
+    """
+    # The actual metrics endpoint is exposed by prometheus-fastapi-instrumentator
+    # This is just for OpenAPI documentation
+    pass
 
 
 @app.get("/readyz")

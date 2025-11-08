@@ -136,6 +136,37 @@
             transform: translateY(0);
         }
 
+        button.secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            font-size: 14px;
+            padding: 8px 20px;
+            margin-left: 10px;
+        }
+
+        button.secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .copy-feedback {
+            display: inline-block;
+            color: #28a745;
+            font-size: 14px;
+            margin-left: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .copy-feedback.show {
+            opacity: 1;
+        }
+
         .response {
             margin-top: 20px;
             padding: 20px;
@@ -271,7 +302,11 @@
                     <label for="parser-llm" style="margin-bottom: 0;">Use LLM Parser (DeepSeek)</label>
                 </div>
 
-                <button onclick="testParser()">Parse</button>
+                <div class="button-group">
+                    <button onclick="testParser()">Parse</button>
+                    <button class="secondary" onclick="copyParserCurl()">Copy as cURL</button>
+                    <span id="parser-copy-feedback" class="copy-feedback">Copied!</span>
+                </div>
 
                 <div id="parser-response" class="response" style="display: none;">
                     <pre></pre>
@@ -318,7 +353,11 @@
                     <div id="params-help" class="help-text">Empty object for operations with no parameters</div>
                 </div>
 
-                <button onclick="testAction()">Run Action</button>
+                <div class="button-group">
+                    <button onclick="testAction()">Run Action</button>
+                    <button class="secondary" onclick="copyActionCurl()">Copy as cURL</button>
+                    <span id="action-copy-feedback" class="copy-feedback">Copied!</span>
+                </div>
 
                 <div id="action-response" class="response" style="display: none;">
                     <pre></pre>
@@ -362,7 +401,11 @@
                     <div class="help-text">Clockify webhook event payload</div>
                 </div>
 
-                <button onclick="testWebhook()">Send Webhook</button>
+                <div class="button-group">
+                    <button onclick="testWebhook()">Send Webhook</button>
+                    <button class="secondary" onclick="copyWebhookCurl()">Copy as cURL</button>
+                    <span id="webhook-copy-feedback" class="copy-feedback">Copied!</span>
+                </div>
 
                 <div id="webhook-response" class="response" style="display: none;">
                     <pre></pre>
@@ -371,11 +414,94 @@
         </div>
 
         <footer>
-            <p>Clankerbot v0.2.0 | <a href="https://github.com/your-org/clankerbot" target="_blank">Documentation</a></p>
+            <p>Clankerbot v0.2.1 | <a href="https://github.com/your-org/clankerbot" target="_blank">Documentation</a></p>
         </footer>
     </div>
 
     <script>
+        // Copy to clipboard helper
+        function copyToClipboard(text, feedbackElementId) {
+            navigator.clipboard.writeText(text).then(() => {
+                const feedbackEl = document.getElementById(feedbackElementId);
+                feedbackEl.classList.add('show');
+                setTimeout(() => {
+                    feedbackEl.classList.remove('show');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy to clipboard: ' + err);
+            });
+        }
+
+        // Generate cURL for Parser
+        function copyParserCurl() {
+            const apiUrl = document.getElementById('parser-api-url').value.trim() || 'http://localhost:8000';
+            const text = document.getElementById('parser-text').value.trim() || 'clockify.get_user';
+            const useLlm = document.getElementById('parser-llm').checked;
+
+            const url = useLlm ? `${apiUrl}/actions/parse?llm=true` : `${apiUrl}/actions/parse`;
+            const payload = JSON.stringify({ text }, null, 2);
+
+            const curlCommand = `curl -X POST "${url}" \\
+  -H "Content-Type: application/json" \\
+  -d '${payload}'`;
+
+            copyToClipboard(curlCommand, 'parser-copy-feedback');
+        }
+
+        // Generate cURL for Action Runner
+        function copyActionCurl() {
+            const apiUrl = document.getElementById('action-api-url').value.trim() || 'http://localhost:8000';
+            const integration = document.getElementById('action-integration').value;
+            const operation = document.getElementById('action-operation').value;
+            const paramsText = document.getElementById('action-params').value.trim() || '{}';
+
+            let params;
+            try {
+                params = JSON.parse(paramsText);
+            } catch (error) {
+                alert('Invalid JSON in parameters. Please fix before copying.');
+                return;
+            }
+
+            const payload = JSON.stringify({ integration, operation, params }, null, 2);
+
+            const curlCommand = `curl -X POST "${apiUrl}/actions/run" \\
+  -H "Content-Type: application/json" \\
+  -d '${payload}'`;
+
+            copyToClipboard(curlCommand, 'action-copy-feedback');
+        }
+
+        // Generate cURL for Webhook
+        function copyWebhookCurl() {
+            const apiUrl = document.getElementById('webhook-api-url').value.trim() || 'http://localhost:8000';
+            const secret = document.getElementById('webhook-secret').value.trim();
+            const eventId = document.getElementById('webhook-event-id').value.trim() || 'test_event_12345';
+            const payloadText = document.getElementById('webhook-payload').value.trim();
+
+            let payload;
+            try {
+                payload = JSON.parse(payloadText);
+            } catch (error) {
+                alert('Invalid JSON in payload. Please fix before copying.');
+                return;
+            }
+
+            const payloadFormatted = JSON.stringify(payload, null, 2);
+
+            let curlCommand = `curl -X POST "${apiUrl}/webhooks/clockify" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Clockify-Event-Id: ${eventId}"`;
+
+            if (secret) {
+                curlCommand += ` \\\n  -H "X-Webhook-Secret: ${secret}"`;
+            }
+
+            curlCommand += ` \\\n  -d '${payloadFormatted}'`;
+
+            copyToClipboard(curlCommand, 'webhook-copy-feedback');
+        }
+
         // Parser test
         async function testParser() {
             const apiUrl = document.getElementById('parser-api-url').value.trim();

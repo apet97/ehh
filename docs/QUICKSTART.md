@@ -50,6 +50,50 @@ Get Clankerbot running in under 5 minutes with this comprehensive quick start gu
 - kubectl configured
 - Helm 3.10+ (for Helm chart)
 
+## Pull from GitHub Container Registry
+
+Clankerbot images are published to GitHub Container Registry (GHCR) for all releases.
+
+**Latest stable release:**
+```bash
+docker pull ghcr.io/your-org/clankerbot:latest
+```
+
+**Specific version:**
+```bash
+docker pull ghcr.io/your-org/clankerbot:0.2.1
+```
+
+**Run directly from GHCR:**
+```bash
+docker run -d \
+  --name clankerbot \
+  -p 8000:8000 \
+  -e CLOCKIFY_API_KEY=your_api_key \
+  -e DEEPSEEK_API_KEY=your_deepseek_key \
+  ghcr.io/your-org/clankerbot:latest
+```
+
+**Available tags:**
+- `latest` - Latest stable release
+- `0.2.1`, `0.2.0` - Specific version tags
+- `main` - Latest commit from main branch (not recommended for production)
+
+**Image verification:**
+
+All images are signed with Cosign and include SBOM attestations:
+
+```bash
+# Verify signature
+cosign verify ghcr.io/your-org/clankerbot:latest \
+  --certificate-identity-regexp "https://github.com/your-org/clankerbot" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+# View SBOM
+cosign download attestation ghcr.io/your-org/clankerbot:latest | \
+  jq -r '.payload' | base64 -d | jq .
+```
+
 ## Installation Methods
 
 ### Docker Compose (Recommended)
@@ -215,12 +259,13 @@ curl http://localhost:8000/healthz
 # 1. Create namespace
 kubectl create namespace clankerbot
 
-# 2. Install chart
+# 2. Install chart from GHCR
 helm install clankerbot ./deploy/helm/clankerbot \
   --namespace clankerbot \
+  --set image.repository=ghcr.io/your-org/clankerbot \
+  --set image.tag=0.2.1 \
   --set secrets.clockifyApiKey=your_clockify_key \
-  --set secrets.deepseekApiKey=your_deepseek_key \
-  --set image.tag=latest
+  --set secrets.deepseekApiKey=your_deepseek_key
 
 # 3. Verify installation
 helm status clankerbot -n clankerbot
@@ -231,6 +276,112 @@ kubectl port-forward -n clankerbot svc/clankerbot 8000:8000
 
 # 5. Verify health
 curl http://localhost:8000/healthz
+```
+
+##### Helm Values Reference
+
+Common configuration options (see `deploy/helm/clankerbot/values.yaml` for full reference):
+
+**Image Configuration:**
+```yaml
+image:
+  repository: ghcr.io/your-org/clankerbot
+  pullPolicy: IfNotPresent
+  tag: "0.2.1"
+```
+
+**Replica and Scaling:**
+```yaml
+replicaCount: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+```
+
+**Resources:**
+```yaml
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+**High Availability:**
+```yaml
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: clankerbot
+          topologyKey: kubernetes.io/hostname
+```
+
+**Ingress:**
+```yaml
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: clankerbot.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: clankerbot-tls
+      hosts:
+        - clankerbot.example.com
+```
+
+**Security:**
+```yaml
+secrets:
+  clockifyApiKey: "your_clockify_key"
+  deepseekApiKey: "your_deepseek_key"
+  webhookSharedSecret: "generate_with_openssl_rand_hex_32"
+
+env:
+  RATE_LIMIT_PER_MINUTE: "120"
+  RATE_LIMIT_BURST: "50"
+  MAX_REQUEST_SIZE_MB: "2"
+  WEBHOOK_IP_ALLOWLIST: "192.168.1.0/24,10.0.0.0/8"
+```
+
+**Observability:**
+```yaml
+env:
+  LOG_JSON: "true"
+  METRICS_ENABLED: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+```
+
+**Full values file location:**
+```
+deploy/helm/clankerbot/values.yaml
+```
+
+View with:
+```bash
+cat deploy/helm/clankerbot/values.yaml
 ```
 
 **Custom values file (production):**
