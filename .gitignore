@@ -1,0 +1,25 @@
+# env
+.env
+.env.*
+# venv
+.venv/
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+# editor
+.vscode/
+.idea/
+# os
+.DS_Store
+# build
+dist/
+build/
+*.egg-info/
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/

@@ -1,0 +1,8 @@
+# Example automation: post a Slack heartbeat every hour
+integration: slack
+operation: post_message
+params:
+  channel: "#general"
+  text: "hourly heartbeat"
+cron:
+  minute: "0"
