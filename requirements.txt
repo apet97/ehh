@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+httpx>=0.24
+pydantic>=2
+python-dotenv
+apscheduler
+pyyaml
+pydantic-settings
+pytest
+pytest-asyncio
+pytest-cov
+respx
+ruff
+black
