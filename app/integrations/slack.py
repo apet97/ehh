@@ -1,6 +1,5 @@
 
 from __future__ import annotations
-import os
 from typing import Dict, Any
 import httpx
 from .base import Integration, register_integration

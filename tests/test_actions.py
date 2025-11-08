@@ -3,7 +3,6 @@ Tests for action parsing.
 """
 import pytest
 from app.actions import parse_human, parse_with_llm
-from app.models import Action
 
 
 def test_parse_human_basic():

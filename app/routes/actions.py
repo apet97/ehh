@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from app.models import HumanCommand, RunActionRequest, ScheduleRequest, ApiResponse
 from app.actions import parse_human, parse_with_llm
 from app.integrations.base import get_integration

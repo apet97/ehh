@@ -3,7 +3,6 @@ HTTP client utilities with sane defaults for clankerbot.
 """
 from __future__ import annotations
 import httpx
-from typing import Optional
 
 
 def create_http_client(

@@ -1,8 +1,6 @@
 
 from __future__ import annotations
-from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="", extra="ignore")

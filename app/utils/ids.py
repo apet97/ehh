@@ -3,7 +3,6 @@ Request ID generation utilities.
 """
 import time
 import random
-import os
 
 
 def ulid() -> str:
