@@ -1,0 +1,36 @@
+
+services:
+  clankerbot:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    environment:
+      # Override or set these in .env file
+      # LLM Configuration
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+
+      # Clockify Configuration
+      - CLOCKIFY_API_KEY=${CLOCKIFY_API_KEY:-}
+      - CLOCKIFY_ADDON_TOKEN=${CLOCKIFY_ADDON_TOKEN:-}
+      - CLOCKIFY_BASE_URL=${CLOCKIFY_BASE_URL:-https://api.clockify.me/api}
+
+      # Security
+      - WEBHOOK_SHARED_SECRET=${WEBHOOK_SHARED_SECRET:-}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+
+      # Observability
+      - LOG_JSON=${LOG_JSON:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+
+      # Server
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

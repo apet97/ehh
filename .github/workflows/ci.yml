@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install ruff black
+      - name: Lint with ruff
+        run: ruff check app/ tests/
+      - name: Check formatting with black
+        run: black --check app/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          pytest -v --cov=app --cov-report=term-missing
+        env:
+          CLOCKIFY_API_KEY: test_key
+          DEEPSEEK_API_KEY: test_key
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t clankerbot:test .
+      - name: Test Docker image
+        run: |
+          docker run -d -p 8000:8000 -e CLOCKIFY_API_KEY=test clankerbot:test
+          sleep 5
+          curl -f http://localhost:8000/healthz || exit 1
