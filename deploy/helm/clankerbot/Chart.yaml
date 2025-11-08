@@ -1,0 +1,18 @@
+apiVersion: v2
+name: clankerbot
+description: Enterprise-grade automation service for Clockify and other integrations
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - clankerbot
+  - clockify
+  - automation
+  - webhook
+  - llm
+home: https://github.com/your-org/clankerbot
+sources:
+  - https://github.com/your-org/clankerbot
+maintainers:
+  - name: Clankerbot Team
+    email: team@example.com

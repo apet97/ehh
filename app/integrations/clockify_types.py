@@ -80,6 +80,16 @@ class ClockifyProject(BaseModel):
     billable: bool = False
 
 
+class ProjectCreate(BaseModel):
+    """Request body for creating a project."""
+    name: str
+    clientId: Optional[str] = None
+    isPublic: bool = True
+    color: Optional[str] = None
+    billable: Optional[bool] = None
+    note: Optional[str] = None
+
+
 class ApprovalRequestStatus(BaseModel):
     """Approval request status."""
     state: str  # PENDING, APPROVED, REJECTED

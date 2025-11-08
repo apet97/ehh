@@ -2,10 +2,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 import time
 import logging
+import os
+from pathlib import Path
 from app.utils.logging import configure_logging
 from app.utils.ids import request_id as get_request_id
 from app.config import settings
@@ -123,6 +126,12 @@ async def readiness(request: Request):
         request_id=req_id,
     )
 
+
+# Mount static files for manual testing UI
+tools_dir = Path(__file__).parent.parent / "tools"
+if tools_dir.exists():
+    app.mount("/tools", StaticFiles(directory=str(tools_dir)), name="tools")
+    logger.info(f"Mounted static files from {tools_dir}")
 
 # Routes
 app.include_router(actions_routes.router)

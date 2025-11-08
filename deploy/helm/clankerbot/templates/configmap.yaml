@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clankerbot.fullname" . }}-config
+  labels:
+    {{- include "clankerbot.labels" . | nindent 4 }}
+data:
+  # Clockify Configuration
+  clockify-base-url: {{ .Values.config.clockify.baseUrl | quote }}
+
+  # LLM Configuration
+  llm-base-url: {{ .Values.config.llm.baseUrl | quote }}
+  llm-model: {{ .Values.config.llm.model | quote }}
+
+  # Security
+  rate-limit-per-minute: {{ .Values.config.rateLimitPerMinute | quote }}
+
+  # Observability
+  log-json: {{ .Values.config.logJson | quote }}
+  {{- if .Values.config.otelEndpoint }}
+  otel-endpoint: {{ .Values.config.otelEndpoint | quote }}
+  {{- end }}
+
+  # Server
+  cors-origins: {{ .Values.config.corsOrigins | quote }}

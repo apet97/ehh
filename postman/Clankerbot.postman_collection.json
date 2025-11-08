@@ -1,0 +1,281 @@
+{
+  "info": {
+    "_postman_id": "clankerbot-v0.2.0",
+    "name": "Clankerbot API",
+    "description": "Enterprise automation service - Clockify integration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/healthz",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/readyz",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "readyz"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Actions - Parse",
+      "item": [
+        {
+          "name": "Parse (Rule-based)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"text\": \"clockify.get_user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/actions/parse",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actions",
+                "parse"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Parse (LLM with fallback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"text\": \"Get my Clockify user information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/actions/parse?llm=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actions",
+                "parse"
+              ],
+              "query": [
+                {
+                  "key": "llm",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Actions - Run",
+      "item": [
+        {
+          "name": "Get User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"integration\": \"clockify\",\n    \"operation\": \"get_user\",\n    \"params\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/actions/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actions",
+                "run"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Workspaces",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"integration\": \"clockify\",\n    \"operation\": \"list_workspaces\",\n    \"params\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/actions/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actions",
+                "run"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"integration\": \"clockify\",\n    \"operation\": \"create_client\",\n    \"params\": {\n        \"workspaceId\": \"{{workspaceId}}\",\n        \"body\": {\n            \"name\": \"Test Client\",\n            \"archived\": false\n        }\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/actions/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actions",
+                "run"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Clockify Webhook (First)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Clockify-Event-Id",
+                "value": "test_event_{{$timestamp}}",
+                "description": "Event ID for idempotency"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"entry123\",\n    \"userId\": \"user123\",\n    \"workspaceId\": \"ws123\",\n    \"timeInterval\": {\n        \"start\": \"2024-01-01T10:00:00Z\",\n        \"end\": \"2024-01-01T11:00:00Z\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/clockify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "clockify"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clockify Webhook (Duplicate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Clockify-Event-Id",
+                "value": "test_event_duplicate",
+                "description": "Same event ID to test idempotency"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"id\": \"entry123\",\n    \"userId\": \"user123\",\n    \"workspaceId\": \"ws123\",\n    \"timeInterval\": {\n        \"start\": \"2024-01-01T10:00:00Z\",\n        \"end\": \"2024-01-01T11:00:00Z\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/clockify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "clockify"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "workspaceId",
+      "value": "your_workspace_id_here",
+      "type": "string"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ from typing import Dict, Any
 import logging
 from app.integrations.base import Integration, register_integration
 from app.integrations.clockify_client import ClockifyClient, ClockifyAPIError
-from app.integrations.clockify_types import ClientCreate, TimeEntryCreate
+from app.integrations.clockify_types import ClientCreate, TimeEntryCreate, ProjectCreate
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +83,34 @@ class ClockifyIntegration(Integration):
                     }
                 clients = await self.client.list_clients(workspace_id)
                 return {"ok": True, "clients": [c.model_dump() for c in clients]}
+
+            if operation == "list_projects":
+                workspace_id = params.get("workspaceId")
+                if not workspace_id:
+                    return {
+                        "ok": False,
+                        "error": {
+                            "code": "validation_error",
+                            "message": "workspaceId required",
+                        },
+                    }
+                projects = await self.client.list_projects(workspace_id)
+                return {"ok": True, "projects": [p.model_dump() for p in projects]}
+
+            if operation == "create_project":
+                workspace_id = params.get("workspaceId")
+                body = params.get("body")
+                if not workspace_id or not isinstance(body, dict):
+                    return {
+                        "ok": False,
+                        "error": {
+                            "code": "validation_error",
+                            "message": "workspaceId and body required",
+                        },
+                    }
+                project_create = ProjectCreate(**body)
+                project = await self.client.create_project(workspace_id, project_create)
+                return {"ok": True, **project.model_dump()}
 
             if operation == "create_time_entry":
                 workspace_id = params.get("workspaceId")

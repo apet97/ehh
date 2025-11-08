@@ -319,6 +319,496 @@ kubectl scale deployment/clankerbot --replicas=3
 
 **Note**: For multi-instance deployments, migrate webhook cache and rate limiter to Redis.
 
+## Kubernetes Deployment
+
+### Prerequisites
+
+- Kubernetes cluster 1.24+
+- kubectl configured to access your cluster
+- Helm 3.10+ (for Helm installation)
+- Docker image built and pushed to registry
+
+### Option 1: kubectl (Raw Manifests)
+
+#### Initial Deployment
+
+```bash
+# 1. Create namespace (optional but recommended)
+kubectl create namespace clankerbot
+
+# 2. Create secrets with your API keys
+kubectl create secret generic clankerbot-secrets \
+  --from-literal=clockify-api-key=your_clockify_api_key \
+  --from-literal=deepseek-api-key=your_deepseek_api_key \
+  --from-literal=webhook-shared-secret=$(openssl rand -hex 32) \
+  -n clankerbot
+
+# 3. Apply manifests
+kubectl apply -f deploy/k8s/ -n clankerbot
+
+# 4. Verify deployment
+kubectl get all -n clankerbot
+
+# Expected output:
+# - 2 pods running
+# - 1 service (ClusterIP)
+# - 1 deployment
+
+# 5. Check pod status
+kubectl get pods -n clankerbot
+# Both pods should be Running with 1/1 ready
+
+# 6. View logs
+kubectl logs -f deployment/clankerbot -n clankerbot
+```
+
+#### Update ConfigMap
+
+```bash
+# Edit configmap
+kubectl edit configmap clankerbot-config -n clankerbot
+
+# Or apply changes
+kubectl apply -f deploy/k8s/configmap.yaml -n clankerbot
+
+# Restart pods to pick up changes
+kubectl rollout restart deployment/clankerbot -n clankerbot
+```
+
+#### Update Secrets
+
+```bash
+# Update secret (e.g., rotating API key)
+kubectl create secret generic clankerbot-secrets \
+  --from-literal=clockify-api-key=new_api_key \
+  --from-literal=deepseek-api-key=your_deepseek_key \
+  --from-literal=webhook-shared-secret=your_secret \
+  --dry-run=client -o yaml | kubectl apply -f - -n clankerbot
+
+# Restart to pick up new secrets
+kubectl rollout restart deployment/clankerbot -n clankerbot
+```
+
+#### Scale Deployment
+
+```bash
+# Scale to 5 replicas
+kubectl scale deployment/clankerbot --replicas=5 -n clankerbot
+
+# Verify scaling
+kubectl get pods -n clankerbot
+```
+
+#### Expose via Ingress
+
+```bash
+# 1. Edit ingress.yaml to set your domain
+nano deploy/k8s/ingress.yaml
+# Change clankerbot.example.com to your domain
+
+# 2. Apply ingress
+kubectl apply -f deploy/k8s/ingress.yaml -n clankerbot
+
+# 3. Verify ingress
+kubectl get ingress -n clankerbot
+kubectl describe ingress clankerbot -n clankerbot
+
+# 4. Test endpoint (after DNS propagation)
+curl https://your-domain.com/healthz
+```
+
+#### Port Forward for Testing
+
+```bash
+# Forward local port 8000 to service
+kubectl port-forward -n clankerbot svc/clankerbot 8000:8000
+
+# In another terminal, test
+curl http://localhost:8000/healthz
+```
+
+#### View Logs
+
+```bash
+# All pods
+kubectl logs -f deployment/clankerbot -n clankerbot
+
+# Specific pod
+kubectl logs -f pod/clankerbot-xyz123 -n clankerbot
+
+# Last 100 lines
+kubectl logs --tail=100 deployment/clankerbot -n clankerbot
+
+# Follow logs from all replicas
+kubectl logs -f -l app=clankerbot -n clankerbot
+```
+
+#### Delete Deployment
+
+```bash
+kubectl delete -f deploy/k8s/ -n clankerbot
+kubectl delete secret clankerbot-secrets -n clankerbot
+kubectl delete namespace clankerbot
+```
+
+### Option 2: Helm Chart
+
+#### Initial Installation
+
+```bash
+# 1. Create namespace
+kubectl create namespace clankerbot
+
+# 2. Install chart with inline secrets
+helm install clankerbot ./deploy/helm/clankerbot \
+  --namespace clankerbot \
+  --set secrets.clockifyApiKey=your_clockify_key \
+  --set secrets.deepseekApiKey=your_deepseek_key \
+  --set secrets.webhookSharedSecret=$(openssl rand -hex 32) \
+  --set image.tag=latest
+
+# 3. Verify installation
+helm status clankerbot -n clankerbot
+kubectl get pods -n clankerbot
+```
+
+#### Production Installation with Custom Values
+
+```bash
+# 1. Create production values file
+cat > production-values.yaml <<EOF
+replicaCount: 3
+
+image:
+  repository: registry.example.com/clankerbot
+  tag: "0.2.0"
+  pullPolicy: IfNotPresent
+
+secrets:
+  clockifyApiKey: "your_clockify_key"
+  deepseekApiKey: "your_deepseek_key"
+  webhookSharedSecret: "randomly_generated_secret_at_least_32_chars"
+
+config:
+  rateLimitPerMinute: 120
+  logJson: true
+  corsOrigins: "https://app.example.com,https://admin.example.com"
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+  hosts:
+    - host: clankerbot.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: clankerbot-tls
+      hosts:
+        - clankerbot.example.com
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  workload: api
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - clankerbot
+        topologyKey: kubernetes.io/hostname
+EOF
+
+# 2. Install with production values
+helm install clankerbot ./deploy/helm/clankerbot \
+  -f production-values.yaml \
+  --namespace clankerbot
+
+# 3. Verify
+helm status clankerbot -n clankerbot
+```
+
+#### Upgrade Deployment
+
+```bash
+# Upgrade to new version
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  -f production-values.yaml \
+  --namespace clankerbot
+
+# Upgrade with new image tag
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  --set image.tag=0.2.1 \
+  --namespace clankerbot
+
+# Upgrade and force pod restart
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  --set image.tag=0.2.1 \
+  --force \
+  --namespace clankerbot
+```
+
+#### Rollback
+
+```bash
+# List releases
+helm history clankerbot -n clankerbot
+
+# Rollback to previous version
+helm rollback clankerbot -n clankerbot
+
+# Rollback to specific revision
+helm rollback clankerbot 2 -n clankerbot
+```
+
+#### Update Configuration
+
+```bash
+# Update values and upgrade
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  --set config.rateLimitPerMinute=200 \
+  --namespace clankerbot
+
+# Or edit values file and upgrade
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  -f production-values.yaml \
+  --namespace clankerbot
+```
+
+#### View Values
+
+```bash
+# View current values
+helm get values clankerbot -n clankerbot
+
+# View all values (including defaults)
+helm get values clankerbot -n clankerbot --all
+```
+
+#### Uninstall
+
+```bash
+helm uninstall clankerbot -n clankerbot
+kubectl delete namespace clankerbot
+```
+
+### Kubernetes Best Practices
+
+#### Resource Limits
+
+```yaml
+# Recommended resource settings
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+#### Horizontal Pod Autoscaling
+
+```bash
+# Enable HPA in Helm
+helm upgrade clankerbot ./deploy/helm/clankerbot \
+  --set autoscaling.enabled=true \
+  --set autoscaling.minReplicas=2 \
+  --set autoscaling.maxReplicas=10 \
+  --namespace clankerbot
+
+# Monitor HPA
+kubectl get hpa -n clankerbot
+kubectl describe hpa clankerbot -n clankerbot
+```
+
+#### Pod Disruption Budget
+
+```yaml
+# Create PDB for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: clankerbot-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: clankerbot
+```
+
+```bash
+kubectl apply -f pdb.yaml -n clankerbot
+```
+
+#### Network Policies (Optional)
+
+```yaml
+# Restrict ingress to only from ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: clankerbot-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: clankerbot
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+```
+
+### Monitoring in Kubernetes
+
+#### Health Checks
+
+```bash
+# Check liveness
+kubectl exec -it deployment/clankerbot -n clankerbot -- \
+  curl http://localhost:8000/healthz
+
+# Check readiness
+kubectl exec -it deployment/clankerbot -n clankerbot -- \
+  curl http://localhost:8000/readyz
+```
+
+#### Pod Events
+
+```bash
+# View pod events
+kubectl describe pod clankerbot-xyz -n clankerbot
+
+# Watch events
+kubectl get events -n clankerbot --watch
+```
+
+#### Resource Usage
+
+```bash
+# View resource usage (requires metrics-server)
+kubectl top pods -n clankerbot
+kubectl top nodes
+```
+
+### Troubleshooting Kubernetes Deployments
+
+#### Pods Not Starting
+
+```bash
+# Check pod status
+kubectl get pods -n clankerbot
+
+# Describe pod for events
+kubectl describe pod clankerbot-xyz -n clankerbot
+
+# Check logs
+kubectl logs clankerbot-xyz -n clankerbot
+
+# Common causes:
+# - Image pull errors: Check image name and pull policy
+# - Secrets missing: Verify clankerbot-secrets exists
+# - Resource limits: Check if node has available resources
+```
+
+#### Pods Restarting
+
+```bash
+# Check restart count
+kubectl get pods -n clankerbot
+
+# View previous logs (from crashed container)
+kubectl logs clankerbot-xyz -n clankerbot --previous
+
+# Check liveness/readiness probes
+kubectl describe pod clankerbot-xyz -n clankerbot | grep -A 10 Probes
+
+# Common causes:
+# - OOM killed: Increase memory limits
+# - Failing health checks: Check /healthz and /readyz endpoints
+# - API key issues: Verify secrets are correct
+```
+
+#### Ingress Not Working
+
+```bash
+# Check ingress status
+kubectl get ingress -n clankerbot
+kubectl describe ingress clankerbot -n clankerbot
+
+# Check ingress controller logs
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+
+# Verify service endpoints
+kubectl get endpoints clankerbot -n clankerbot
+
+# Common causes:
+# - DNS not configured: Check domain points to ingress IP
+# - TLS secret missing: Check cert-manager or create manual secret
+# - Ingress class wrong: Verify ingressClassName matches your controller
+```
+
+#### Service Not Accessible
+
+```bash
+# Check service
+kubectl get svc clankerbot -n clankerbot
+kubectl describe svc clankerbot -n clankerbot
+
+# Check endpoints (should match pod IPs)
+kubectl get endpoints clankerbot -n clankerbot
+
+# Test service from another pod
+kubectl run -it --rm debug --image=curlimages/curl --restart=Never -- \
+  curl http://clankerbot.clankerbot.svc.cluster.local:8000/healthz
+```
+
+#### ConfigMap/Secret Not Applied
+
+```bash
+# Verify configmap
+kubectl get configmap clankerbot-config -n clankerbot -o yaml
+
+# Verify secret
+kubectl get secret clankerbot-secrets -n clankerbot -o yaml
+
+# After updating, restart pods
+kubectl rollout restart deployment/clankerbot -n clankerbot
+
+# Wait for rollout to complete
+kubectl rollout status deployment/clankerbot -n clankerbot
+```
+
 ## Support
 
 - **Issues**: https://github.com/your-org/clankerbot/issues
