@@ -52,6 +52,116 @@ export DEEPSEEK_API_KEY=your_key
 uvicorn app.main:app --reload --port 8000
 ```
 
+### Kubernetes
+
+#### Using kubectl
+
+```bash
+# 1. Create secret with API keys
+kubectl create secret generic clankerbot-secrets \
+  --from-literal=CLOCKIFY_API_KEY=your_key_here \
+  --from-literal=WEBHOOK_SHARED_SECRET=$(openssl rand -hex 32) \
+  --from-literal=DEEPSEEK_API_KEY=your_key_here
+
+# 2. Apply manifests
+kubectl apply -f deploy/k8s/
+
+# 3. Check deployment
+kubectl get pods -l app=clankerbot
+kubectl logs -l app=clankerbot --tail=50
+
+# 4. Check health (if ingress configured)
+curl http://clankerbot.example.com/healthz
+
+# Or port-forward for local testing
+kubectl port-forward svc/clankerbot 8000:80
+curl http://localhost:8000/healthz
+```
+
+**Note**: Edit `deploy/k8s/ingress.yaml` to configure your domain before applying.
+
+#### Using Helm
+
+```bash
+# 1. Install chart
+helm install clankerbot deploy/helm/clankerbot/ \
+  --set secrets.CLOCKIFY_API_KEY=your_key_here \
+  --set secrets.DEEPSEEK_API_KEY=your_key_here \
+  --set secrets.WEBHOOK_SHARED_SECRET=$(openssl rand -hex 32)
+
+# 2. Check status
+helm status clankerbot
+kubectl get pods -l app.kubernetes.io/name=clankerbot
+
+# 3. Enable ingress (optional)
+helm upgrade clankerbot deploy/helm/clankerbot/ \
+  --reuse-values \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=clankerbot.example.com
+
+# 4. Enable autoscaling (optional)
+helm upgrade clankerbot deploy/helm/clankerbot/ \
+  --reuse-values \
+  --set autoscaling.enabled=true \
+  --set autoscaling.minReplicas=2 \
+  --set autoscaling.maxReplicas=10
+
+# Uninstall
+helm uninstall clankerbot
+```
+
+**Production values file example** (`values-prod.yaml`):
+
+```yaml
+replicaCount: 3
+
+image:
+  repository: your-registry.io/clankerbot
+  tag: "0.2.0"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: clankerbot.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: clankerbot-tls
+      hosts:
+        - clankerbot.example.com
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+
+env:
+  RATE_LIMIT_PER_MINUTE: "120"
+  LOG_JSON: "true"
+```
+
+Install with custom values:
+
+```bash
+helm install clankerbot deploy/helm/clankerbot/ \
+  -f values-prod.yaml \
+  --set secrets.CLOCKIFY_API_KEY=$CLOCKIFY_API_KEY \
+  --set secrets.DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
+```
+
 ## Configuration
 
 ### Required Environment Variables

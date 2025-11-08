@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clankerbot Manual UI</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            color: #2563eb;
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .checkbox-group input {
+            margin-right: 8px;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .output.success {
+            border-left: 4px solid #10b981;
+        }
+        .output.error {
+            border-left: 4px solid #ef4444;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .hint {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Clankerbot Manual UI</h1>
+        <p class="subtitle">Test API endpoints without Postman or cURL</p>
+
+        <div class="grid">
+            <!-- Parser Section -->
+            <div class="section">
+                <h2>🧠 Action Parser</h2>
+                <label for="parseText">Input Text</label>
+                <input type="text" id="parseText" placeholder="clockify.get_user" value="clockify.get_user">
+                <div class="hint">Try: "clockify.get_user" or "Get my Clockify user info"</div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="useLlm">
+                    <label for="useLlm" style="margin: 0;">Use LLM parsing (requires DEEPSEEK_API_KEY)</label>
+                </div>
+
+                <button onclick="parseAction()">Parse</button>
+                <div id="parseOutput"></div>
+            </div>
+
+            <!-- Action Runner Section -->
+            <div class="section">
+                <h2>⚡ Action Runner</h2>
+                <label for="integration">Integration</label>
+                <input type="text" id="integration" placeholder="clockify" value="clockify">
+
+                <label for="operation">Operation</label>
+                <input type="text" id="operation" placeholder="get_user" value="get_user">
+
+                <label for="params">Parameters (JSON)</label>
+                <textarea id="params" placeholder="{}">{}</textarea>
+                <div class="hint">Examples: {} or {"workspaceId": "abc123"}</div>
+
+                <button onclick="runAction()">Run Action</button>
+                <div id="runOutput"></div>
+            </div>
+        </div>
+
+        <!-- Webhook Section -->
+        <div class="section">
+            <h2>🔔 Webhook Sender</h2>
+            <label for="webhookPayload">Payload (JSON)</label>
+            <textarea id="webhookPayload" style="min-height: 150px;">{
+  "id": "entry123",
+  "userId": "user123",
+  "workspaceId": "ws123",
+  "timeInterval": {
+    "start": "2024-01-01T10:00:00Z",
+    "end": "2024-01-01T11:00:00Z"
+  }
+}</textarea>
+
+            <label for="eventId">Event ID (for idempotency testing)</label>
+            <input type="text" id="eventId" placeholder="test_event_001" value="test_event_001">
+            <div class="hint">Use same ID twice to test duplicate detection</div>
+
+            <button onclick="sendWebhook()">Send Webhook</button>
+            <div id="webhookOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function parseAction() {
+            const text = document.getElementById('parseText').value;
+            const useLlm = document.getElementById('useLlm').checked;
+            const url = useLlm ? `${API_BASE}/actions/parse?llm=true` : `${API_BASE}/actions/parse`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ text })
+                });
+
+                const data = await response.json();
+                showOutput('parseOutput', data, response.ok);
+            } catch (error) {
+                showOutput('parseOutput', { error: error.message }, false);
+            }
+        }
+
+        async function runAction() {
+            const integration = document.getElementById('integration').value;
+            const operation = document.getElementById('operation').value;
+            const paramsText = document.getElementById('params').value;
+
+            let params = {};
+            try {
+                params = JSON.parse(paramsText);
+            } catch (e) {
+                showOutput('runOutput', { error: 'Invalid JSON in params' }, false);
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/actions/run`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ integration, operation, params })
+                });
+
+                const data = await response.json();
+                showOutput('runOutput', data, response.ok);
+            } catch (error) {
+                showOutput('runOutput', { error: error.message }, false);
+            }
+        }
+
+        async function sendWebhook() {
+            const payloadText = document.getElementById('webhookPayload').value;
+            const eventId = document.getElementById('eventId').value;
+
+            let payload = {};
+            try {
+                payload = JSON.parse(payloadText);
+            } catch (e) {
+                showOutput('webhookOutput', { error: 'Invalid JSON in payload' }, false);
+                return;
+            }
+
+            try {
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-Clockify-Event-Id': eventId
+                };
+
+                const response = await fetch(`${API_BASE}/webhooks/clockify`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showOutput('webhookOutput', data, response.ok);
+            } catch (error) {
+                showOutput('webhookOutput', { error: error.message }, false);
+            }
+        }
+
+        function showOutput(elementId, data, success) {
+            const outputDiv = document.getElementById(elementId);
+            outputDiv.className = `output ${success ? 'success' : 'error'}`;
+            outputDiv.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Keyboard shortcuts
+        document.getElementById('parseText').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') parseAction();
+        });
+    </script>
+</body>
+</html>

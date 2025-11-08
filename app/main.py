@@ -2,10 +2,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 import time
 import logging
+from pathlib import Path
 from app.utils.logging import configure_logging
 from app.utils.ids import request_id as get_request_id
 from app.config import settings
@@ -83,6 +85,13 @@ app.add_middleware(
 async def _startup():
     sched.start_scheduler()
     logger.info("Clankerbot started successfully")
+
+
+# Mount static files for manual UI
+tools_dir = Path(__file__).parent.parent / "tools"
+if tools_dir.exists():
+    app.mount("/tools", StaticFiles(directory=str(tools_dir), html=True), name="tools")
+    logger.info(f"Serving static files from {tools_dir}")
 
 
 # Health endpoints

@@ -1,0 +1,161 @@
+# Clankerbot API - VS Code REST Client
+# Install: "REST Client" extension by Huachao Mao
+# Usage: Click "Send Request" above each request
+
+@baseUrl = http://localhost:8000
+@workspaceId = your_workspace_id_here
+
+### Health Check
+GET {{baseUrl}}/healthz
+
+### Readiness Check
+GET {{baseUrl}}/readyz
+
+###
+### Actions - Parse
+###
+
+### Parse Action (Rule-based)
+POST {{baseUrl}}/actions/parse
+Content-Type: application/json
+
+{
+    "text": "clockify.get_user"
+}
+
+### Parse Action (LLM with fallback)
+POST {{baseUrl}}/actions/parse?llm=true
+Content-Type: application/json
+
+{
+    "text": "Get my Clockify user information"
+}
+
+###
+### Actions - Run
+###
+
+### Get User
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "get_user",
+    "params": {}
+}
+
+### List Workspaces
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "list_workspaces",
+    "params": {}
+}
+
+### Get Workspace
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "get_workspace",
+    "params": {
+        "workspaceId": "{{workspaceId}}"
+    }
+}
+
+### List Clients
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "list_clients",
+    "params": {
+        "workspaceId": "{{workspaceId}}"
+    }
+}
+
+### Create Client
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "create_client",
+    "params": {
+        "workspaceId": "{{workspaceId}}",
+        "body": {
+            "name": "Test Client",
+            "archived": false
+        }
+    }
+}
+
+### Create Time Entry
+POST {{baseUrl}}/actions/run
+Content-Type: application/json
+
+{
+    "integration": "clockify",
+    "operation": "create_time_entry",
+    "params": {
+        "workspaceId": "{{workspaceId}}",
+        "body": {
+            "start": "2024-01-01T10:00:00Z",
+            "end": "2024-01-01T11:00:00Z",
+            "description": "Test entry",
+            "billable": true
+        }
+    }
+}
+
+###
+### Webhooks
+###
+
+### Clockify Webhook (First delivery)
+POST {{baseUrl}}/webhooks/clockify
+Content-Type: application/json
+X-Clockify-Event-Id: test_event_001
+
+{
+    "id": "entry123",
+    "userId": "user123",
+    "workspaceId": "ws123",
+    "timeInterval": {
+        "start": "2024-01-01T10:00:00Z",
+        "end": "2024-01-01T11:00:00Z"
+    }
+}
+
+### Clockify Webhook (Duplicate - same event ID)
+POST {{baseUrl}}/webhooks/clockify
+Content-Type: application/json
+X-Clockify-Event-Id: test_event_001
+
+{
+    "id": "entry123",
+    "userId": "user123",
+    "workspaceId": "ws123",
+    "timeInterval": {
+        "start": "2024-01-01T10:00:00Z",
+        "end": "2024-01-01T11:00:00Z"
+    }
+}
+
+### Clockify Webhook (Project event)
+POST {{baseUrl}}/webhooks/clockify
+Content-Type: application/json
+X-Clockify-Event-Id: test_project_001
+
+{
+    "id": "proj123",
+    "name": "Test Project",
+    "workspaceId": "ws123",
+    "tasks": [],
+    "billable": true
+}

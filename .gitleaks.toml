@@ -1,0 +1,69 @@
+# Gitleaks configuration for Clankerbot
+# Prevents accidental secret commits
+
+title = "Clankerbot Secret Scanning"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[[rules]]
+id = "clockify-api-key"
+description = "Clockify API Key"
+regex = '''(?i)(?:clockify[_-]?api[_-]?key|x-api-key)\s*[:=]\s*["']?([a-f0-9]{64})["']?'''
+tags = ["api", "clockify"]
+
+[[rules]]
+id = "clockify-addon-token"
+description = "Clockify Addon Token"
+regex = '''(?i)(?:clockify[_-]?addon[_-]?token|x-addon-token)\s*[:=]\s*["']?([a-zA-Z0-9]{40,})["']?'''
+tags = ["token", "clockify"]
+
+[[rules]]
+id = "deepseek-api-key"
+description = "DeepSeek API Key"
+regex = '''(?i)(?:deepseek[_-]?api[_-]?key)\s*[:=]\s*["']?(sk-[a-zA-Z0-9]{32,})["']?'''
+tags = ["api", "deepseek", "llm"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)api[_-]?key\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?'''
+tags = ["api", "generic"]
+[rules.allowlist]
+paths = [
+    '''\.env\.example$''',
+    '''README\.md$''',
+    '''docs/.*\.md$'''
+]
+
+[[rules]]
+id = "webhook-secret"
+description = "Webhook Secret"
+regex = '''(?i)webhook[_-]?secret\s*[:=]\s*["']?([a-zA-Z0-9]{32,})["']?'''
+tags = ["webhook", "secret"]
+[rules.allowlist]
+paths = [
+    '''\.env\.example$''',
+    '''README\.md$''',
+    '''docs/.*\.md$'''
+]
+
+[allowlist]
+description = "Allowlisted files and paths"
+paths = [
+    '''^\.env\.example$''',
+    '''^\.git/''',
+    '''(.*?)(jpg|gif|png|svg|ico)$''',
+    '''package-lock\.json$''',
+    '''node_modules/''',
+    '''vendor/'''
+]
+
+regexes = [
+    '''test[_-]?key''',
+    '''example[_-]?key''',
+    '''your[_-]?.*[_-]?here''',
+    '''sk-your-deepseek-key-here''',
+    '''your_clockify_api_key_here'''
+]

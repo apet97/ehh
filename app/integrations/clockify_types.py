@@ -68,6 +68,16 @@ class ClockifyTimeEntry(BaseModel):
     isLocked: bool = False
 
 
+class ProjectCreate(BaseModel):
+    """Request body for creating a project."""
+    name: str
+    clientId: Optional[str] = None
+    color: Optional[str] = None
+    billable: bool = False
+    isPublic: bool = True
+    archived: bool = False
+
+
 class ClockifyProject(BaseModel):
     """Project model."""
     id: str

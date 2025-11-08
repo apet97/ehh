@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clankerbot
+  labels:
+    app: clankerbot
+    version: v0.2.0
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: clankerbot
+  template:
+    metadata:
+      labels:
+        app: clankerbot
+        version: v0.2.0
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: clankerbot
+        image: clankerbot:0.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8000"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: RATE_LIMIT_PER_MINUTE
+        - name: LOG_JSON
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: LOG_JSON
+        - name: CLOCKIFY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: CLOCKIFY_API_KEY
+              optional: true
+        - name: WEBHOOK_SHARED_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: WEBHOOK_SHARED_SECRET
+              optional: true
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: DEEPSEEK_API_KEY
+              optional: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL

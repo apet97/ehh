@@ -1,0 +1,13 @@
+apiVersion: v2
+name: clankerbot
+description: Enterprise automation service with Clockify integration
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - automation
+  - clockify
+  - webhook
+  - fastapi
+maintainers:
+  - name: clankerbot-team
