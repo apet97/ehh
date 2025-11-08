@@ -5,6 +5,7 @@ from fastapi import APIRouter, Request, Header
 from typing import Optional, Dict, Any
 from collections import OrderedDict
 import logging
+import ipaddress
 from app.models import ApiResponse
 from app.config import settings
 from app.utils.ids import request_id as get_request_id
@@ -33,6 +34,72 @@ def _check_and_record_event(event_id: str) -> bool:
     # Evict oldest if cache is full
     if len(_event_cache) > MAX_EVENT_CACHE:
         _event_cache.popitem(last=False)
+
+    return False
+
+
+def _get_client_ip(request: Request) -> str:
+    """
+    Extract the real client IP from request headers or client object.
+    Checks X-Forwarded-For and X-Real-IP headers first.
+    """
+    # Check X-Forwarded-For (may contain multiple IPs, take the first one)
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    if x_forwarded_for:
+        # Take the first IP from the list
+        ip = x_forwarded_for.split(",")[0].strip()
+        return ip
+
+    # Check X-Real-IP
+    x_real_ip = request.headers.get("x-real-ip")
+    if x_real_ip:
+        return x_real_ip.strip()
+
+    # Fall back to direct client IP
+    if request.client:
+        return request.client.host
+
+    return "unknown"
+
+
+def _validate_ip_allowlist(client_ip: str, allowlist: str) -> bool:
+    """
+    Validate if client IP is in the CIDR allowlist.
+
+    Args:
+        client_ip: Client IP address as string
+        allowlist: Comma-separated list of CIDR ranges (e.g., "192.168.1.0/24,10.0.0.0/8")
+
+    Returns:
+        True if IP is allowed or allowlist is empty, False otherwise
+    """
+    if not allowlist or not allowlist.strip():
+        # No allowlist configured, allow all
+        return True
+
+    try:
+        client_addr = ipaddress.ip_address(client_ip)
+    except ValueError:
+        logger.warning(f"Invalid client IP address: {client_ip}")
+        return False
+
+    # Parse CIDR ranges
+    allowed_networks = []
+    for cidr in allowlist.split(","):
+        cidr = cidr.strip()
+        if not cidr:
+            continue
+        try:
+            network = ipaddress.ip_network(cidr, strict=False)
+            allowed_networks.append(network)
+        except ValueError:
+            logger.warning(f"Invalid CIDR in allowlist: {cidr}")
+            continue
+
+    # Check if client IP is in any allowed network
+    for network in allowed_networks:
+        if client_addr in network:
+            return True
 
     return False
 
@@ -93,12 +160,27 @@ async def clockify_webhook(
 ):
     """
     Receive and process Clockify webhooks with:
+    - IP allowlist validation (if WEBHOOK_IP_ALLOWLIST is set)
     - Secret validation (if WEBHOOK_SHARED_SECRET is set)
     - Idempotency via X-Clockify-Event-Id
     - Event normalization
     - Structured response
     """
     req_id = get_request_id(x_request_id)
+
+    # Validate IP allowlist if configured
+    if settings.WEBHOOK_IP_ALLOWLIST:
+        client_ip = _get_client_ip(request)
+        if not _validate_ip_allowlist(client_ip, settings.WEBHOOK_IP_ALLOWLIST):
+            logger.warning(
+                f"Webhook from unauthorized IP {client_ip} blocked (request {req_id})"
+            )
+            return ApiResponse.failure(
+                code="forbidden",
+                message=f"IP address {client_ip} not in allowlist",
+                request_id=req_id,
+            )
+        logger.debug(f"Webhook from authorized IP {client_ip}")
 
     # Validate webhook secret if configured
     if settings.WEBHOOK_SHARED_SECRET:

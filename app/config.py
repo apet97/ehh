@@ -16,13 +16,19 @@ class Settings(BaseSettings):
 
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_BURST: int = 30
+
+    # Request limits
+    MAX_REQUEST_SIZE_MB: int = 1
 
     # Webhook security
     WEBHOOK_SHARED_SECRET: str | None = None
+    WEBHOOK_IP_ALLOWLIST: str = ""  # CIDR list comma-separated
 
     # Observability
     LOG_JSON: bool = False
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None
+    METRICS_ENABLED: bool = False
 
     # Adapters
     SLACK_BOT_TOKEN: str | None = None

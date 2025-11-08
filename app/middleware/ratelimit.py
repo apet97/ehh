@@ -10,11 +10,12 @@ from starlette.responses import JSONResponse
 
 
 class TokenBucket:
-    """Token bucket for rate limiting."""
+    """Token bucket for rate limiting with burst support."""
 
-    def __init__(self, capacity: int, refill_rate: float):
+    def __init__(self, capacity: int, refill_rate: float, burst: int = None):
         self.capacity = capacity
-        self.tokens = capacity
+        self.burst = burst if burst is not None else capacity
+        self.tokens = self.burst  # Start with burst capacity
         self.refill_rate = refill_rate  # tokens per second
         self.last_refill = time.time()
 
@@ -27,26 +28,27 @@ class TokenBucket:
         return False
 
     def _refill(self):
-        """Refill tokens based on elapsed time."""
+        """Refill tokens based on elapsed time up to burst capacity."""
         now = time.time()
         elapsed = now - self.last_refill
         new_tokens = elapsed * self.refill_rate
-        self.tokens = min(self.capacity, self.tokens + new_tokens)
+        self.tokens = min(self.burst, self.tokens + new_tokens)
         self.last_refill = now
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Rate limit middleware using in-memory token bucket.
+    Rate limit middleware using in-memory token bucket with burst capacity.
     Keyed by (client_ip, path).
     """
 
-    def __init__(self, app, capacity: int = 60):
+    def __init__(self, app, capacity: int = 60, burst: int = None):
         super().__init__(app)
         self.capacity = capacity
+        self.burst = burst if burst is not None else capacity
         self.refill_rate = capacity / 60.0  # refill rate per second
         self.buckets: Dict[Tuple[str, str], TokenBucket] = defaultdict(
-            lambda: TokenBucket(self.capacity, self.refill_rate)
+            lambda: TokenBucket(self.capacity, self.refill_rate, self.burst)
         )
 
     async def dispatch(self, request: Request, call_next):

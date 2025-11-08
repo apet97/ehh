@@ -18,6 +18,7 @@ class JSONFormatter(logging.Formatter):
             "level": record.levelname,
             "msg": record.getMessage(),
             "logger": record.name,
+            "service": "clankerbot",
         }
 
         # Add extra fields if present
