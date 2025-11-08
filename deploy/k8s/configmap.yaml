@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clankerbot-config
+  labels:
+    app: clankerbot
+data:
+  # Clockify Configuration
+  clockify-base-url: "https://api.clockify.me/api"
+
+  # LLM Configuration
+  llm-base-url: "https://api.deepseek.com"
+  llm-model: "deepseek-chat"
+
+  # Security
+  rate-limit-per-minute: "60"
+
+  # Observability
+  log-json: "true"
+  otel-endpoint: ""
+
+  # Server
+  cors-origins: "http://localhost:3000"

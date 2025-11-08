@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clankerbot.fullname" . }}
+  labels:
+    {{- include "clankerbot.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  selector:
+    matchLabels:
+      {{- include "clankerbot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "clankerbot.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clankerbot.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        env:
+        # Clockify Configuration
+        - name: CLOCKIFY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-secrets
+              key: clockify-api-key
+              optional: true
+        - name: CLOCKIFY_ADDON_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-secrets
+              key: clockify-addon-token
+              optional: true
+        - name: CLOCKIFY_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: clockify-base-url
+
+        # LLM Configuration
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-secrets
+              key: deepseek-api-key
+              optional: true
+        - name: LLM_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: llm-base-url
+        - name: LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: llm-model
+
+        # Security
+        - name: WEBHOOK_SHARED_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-secrets
+              key: webhook-shared-secret
+              optional: true
+        - name: RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: rate-limit-per-minute
+
+        # Observability
+        - name: LOG_JSON
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: log-json
+        {{- if .Values.config.otelEndpoint }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: otel-endpoint
+        {{- end }}
+
+        # Server
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "clankerbot.fullname" . }}-config
+              key: cors-origins
+
+        livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+        readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

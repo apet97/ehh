@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clankerbot
+  labels:
+    app: clankerbot
+    version: v0.2.0
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: clankerbot
+  template:
+    metadata:
+      labels:
+        app: clankerbot
+        version: v0.2.0
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: clankerbot
+        image: clankerbot:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        env:
+        # Clockify Configuration
+        - name: CLOCKIFY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: clockify-api-key
+              optional: true
+        - name: CLOCKIFY_ADDON_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: clockify-addon-token
+              optional: true
+        - name: CLOCKIFY_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: clockify-base-url
+
+        # LLM Configuration
+        - name: DEEPSEEK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: deepseek-api-key
+              optional: true
+        - name: LLM_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: llm-base-url
+        - name: LLM_MODEL
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: llm-model
+
+        # Security
+        - name: WEBHOOK_SHARED_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: clankerbot-secrets
+              key: webhook-shared-secret
+              optional: true
+        - name: RATE_LIMIT_PER_MINUTE
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: rate-limit-per-minute
+
+        # Observability
+        - name: LOG_JSON
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: log-json
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: otel-endpoint
+              optional: true
+
+        # Server
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: clankerbot-config
+              key: cors-origins
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL

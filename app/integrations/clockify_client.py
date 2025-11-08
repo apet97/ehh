@@ -9,10 +9,12 @@ from app.utils.http import create_http_client
 from app.integrations.clockify_types import (
     ClockifyUser,
     ClockifyWorkspace,
-    ClockifyClient,
+    ClockifyClient as ClockifyClientModel,
     ClientCreate,
     TimeEntryCreate,
     ClockifyTimeEntry,
+    ClockifyProject,
+    ProjectCreate,
 )
 from app.config import settings
 
@@ -191,19 +193,38 @@ class ClockifyClient:
 
     async def create_client(
         self, workspace_id: str, body: ClientCreate
-    ) -> ClockifyClient:
+    ) -> ClockifyClientModel:
         """Create a client in workspace."""
         data = await self._request(
             "POST",
             f"/v1/workspaces/{workspace_id}/clients",
             json_body=body.model_dump(),
         )
-        return ClockifyClient(**data)
+        return ClockifyClientModel(**data)
 
-    async def list_clients(self, workspace_id: str) -> List[ClockifyClient]:
+    async def list_clients(self, workspace_id: str) -> List[ClockifyClientModel]:
         """List clients in workspace."""
         data = await self._request("GET", f"/v1/workspaces/{workspace_id}/clients")
-        return [ClockifyClient(**c) for c in data]
+        return [ClockifyClientModel(**c) for c in data]
+
+    async def list_projects(self, workspace_id: str) -> List[ClockifyProject]:
+        """List projects in workspace."""
+        data = await self._request(
+            "GET",
+            f"/v1/workspaces/{workspace_id}/projects"
+        )
+        return [ClockifyProject(**p) for p in data]
+
+    async def create_project(
+        self, workspace_id: str, body: ProjectCreate
+    ) -> ClockifyProject:
+        """Create a project in workspace."""
+        data = await self._request(
+            "POST",
+            f"/v1/workspaces/{workspace_id}/projects",
+            json_body=body.model_dump(exclude_none=True),
+        )
+        return ClockifyProject(**data)
 
     async def create_time_entry(
         self, workspace_id: str, body: TimeEntryCreate

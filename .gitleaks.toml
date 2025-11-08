@@ -1,0 +1,64 @@
+# Gitleaks configuration for Clankerbot
+# Detects accidentally committed secrets
+
+title = "Clankerbot Secret Scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "clockify-api-key"
+description = "Clockify API Key"
+regex = '''(?i)(?:clockify[_-]?api[_-]?key|x-api-key).{0,20}['\"]?([a-f0-9]{64})'''
+tags = ["key", "clockify"]
+
+[[rules]]
+id = "clockify-addon-token"
+description = "Clockify Addon Token"
+regex = '''(?i)(?:clockify[_-]?addon[_-]?token|x-addon-token).{0,20}['\"]?([a-zA-Z0-9_-]{40,})'''
+tags = ["token", "clockify"]
+
+[[rules]]
+id = "deepseek-api-key"
+description = "DeepSeek API Key"
+regex = '''sk-[a-zA-Z0-9]{32,}'''
+tags = ["key", "deepseek", "llm"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey|secret[_-]?key).{0,20}['\"]([a-zA-Z0-9_\-]{32,})'''
+tags = ["key", "generic"]
+
+[[rules]]
+id = "webhook-secret"
+description = "Webhook Shared Secret"
+regex = '''(?i)webhook[_-]?secret.{0,20}['\"]([a-f0-9]{64})'''
+tags = ["secret", "webhook"]
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA|EC|OPENSSH|PGP) PRIVATE KEY-----'''
+tags = ["key", "private"]
+
+[allowlist]
+description = "Global allowlist"
+# Ignore test files and examples
+paths = [
+    '''\.env\.example$''',
+    '''tests/fixtures/''',
+    '''docs/examples/'''
+]
+
+# Allow placeholders
+regexes = [
+    '''your_key_here''',
+    '''sk_xxx''',
+    '''addon_xxx''',
+    '''example\.com''',
+    '''test_event_''',
+    '''mock_''',
+    '''dummy_''',
+    '''placeholder'''
+]

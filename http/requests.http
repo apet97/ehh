@@ -1,0 +1,129 @@
+### Health Check
+GET http://localhost:8000/healthz
+
+### Readiness Check
+GET http://localhost:8000/readyz
+
+### Parse Action (Rule-based)
+POST http://localhost:8000/actions/parse
+Content-Type: application/json
+
+{
+  "text": "clockify.get_user"
+}
+
+### Parse Action (LLM with fallback)
+POST http://localhost:8000/actions/parse?llm=true
+Content-Type: application/json
+
+{
+  "text": "Get my Clockify user information"
+}
+
+### Run Action - Get User
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "get_user",
+  "params": {}
+}
+
+### Run Action - List Workspaces
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "list_workspaces",
+  "params": {}
+}
+
+### Run Action - List Clients
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "list_clients",
+  "params": {
+    "workspaceId": "your_workspace_id_here"
+  }
+}
+
+### Run Action - Create Client
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "create_client",
+  "params": {
+    "workspaceId": "your_workspace_id_here",
+    "body": {
+      "name": "Test Client",
+      "archived": false
+    }
+  }
+}
+
+### Run Action - List Projects
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "list_projects",
+  "params": {
+    "workspaceId": "your_workspace_id_here"
+  }
+}
+
+### Run Action - Create Project
+POST http://localhost:8000/actions/run
+Content-Type: application/json
+
+{
+  "integration": "clockify",
+  "operation": "create_project",
+  "params": {
+    "workspaceId": "your_workspace_id_here",
+    "body": {
+      "name": "Test Project",
+      "clientId": "optional_client_id",
+      "color": "#FF5733",
+      "billable": true
+    }
+  }
+}
+
+### Webhook - First Delivery
+POST http://localhost:8000/webhooks/clockify
+Content-Type: application/json
+X-Clockify-Event-Id: test_event_unique_123
+
+{
+  "id": "entry123",
+  "userId": "user123",
+  "workspaceId": "ws123",
+  "timeInterval": {
+    "start": "2024-01-01T10:00:00Z",
+    "end": "2024-01-01T11:00:00Z"
+  }
+}
+
+### Webhook - Duplicate (Same Event ID)
+POST http://localhost:8000/webhooks/clockify
+Content-Type: application/json
+X-Clockify-Event-Id: test_event_unique_123
+
+{
+  "id": "entry123",
+  "userId": "user123",
+  "workspaceId": "ws123",
+  "timeInterval": {
+    "start": "2024-01-01T10:00:00Z",
+    "end": "2024-01-01T11:00:00Z"
+  }
+}

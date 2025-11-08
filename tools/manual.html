@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clankerbot Manual Testing UI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+            min-height: 100px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .response pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+        }
+
+        .response.success {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+
+        .response.error {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+
+        .response.info {
+            border-color: #17a2b8;
+            background-color: #d1ecf1;
+        }
+
+        .help-text {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #667eea;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Clankerbot Manual Testing UI</h1>
+            <p>Interactive API testing interface for development and debugging</p>
+        </header>
+
+        <div class="content">
+            <!-- Section 1: Parser -->
+            <div class="section">
+                <h2>Parser <span class="badge">POST /actions/parse</span></h2>
+
+                <div class="form-group">
+                    <label for="parser-api-url">API Base URL</label>
+                    <input type="text" id="parser-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+                    <div class="help-text">Base URL of your Clankerbot instance</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="parser-text">Text to Parse</label>
+                    <input type="text" id="parser-text" value="clockify.get_user" placeholder="clockify.get_user">
+                    <div class="help-text">Action text (e.g., "clockify.get_user" or "Get my user info")</div>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="parser-llm">
+                    <label for="parser-llm" style="margin-bottom: 0;">Use LLM Parser (DeepSeek)</label>
+                </div>
+
+                <button onclick="testParser()">Parse</button>
+
+                <div id="parser-response" class="response" style="display: none;">
+                    <pre></pre>
+                </div>
+            </div>
+
+            <!-- Section 2: Action Runner -->
+            <div class="section">
+                <h2>Action Runner <span class="badge">POST /actions/run</span></h2>
+
+                <div class="form-group">
+                    <label for="action-api-url">API Base URL</label>
+                    <input type="text" id="action-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label for="action-integration">Integration</label>
+                        <select id="action-integration" onchange="updateOperationHelp()">
+                            <option value="clockify">clockify</option>
+                            <option value="slack">slack</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="action-operation">Operation</label>
+                        <select id="action-operation" onchange="updateParamsPlaceholder()">
+                            <option value="get_user">get_user</option>
+                            <option value="list_workspaces">list_workspaces</option>
+                            <option value="get_workspace">get_workspace</option>
+                            <option value="list_clients">list_clients</option>
+                            <option value="create_client">create_client</option>
+                            <option value="list_projects">list_projects</option>
+                            <option value="create_project">create_project</option>
+                            <option value="create_time_entry">create_time_entry</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="action-params">Parameters (JSON)</label>
+                    <textarea id="action-params" placeholder='{}'>{}
+</textarea>
+                    <div id="params-help" class="help-text">Empty object for operations with no parameters</div>
+                </div>
+
+                <button onclick="testAction()">Run Action</button>
+
+                <div id="action-response" class="response" style="display: none;">
+                    <pre></pre>
+                </div>
+            </div>
+
+            <!-- Section 3: Webhook Sender -->
+            <div class="section">
+                <h2>Webhook Sender <span class="badge">POST /webhooks/clockify</span></h2>
+
+                <div class="form-group">
+                    <label for="webhook-api-url">API Base URL</label>
+                    <input type="text" id="webhook-api-url" value="http://localhost:8000" placeholder="http://localhost:8000">
+                </div>
+
+                <div class="form-group">
+                    <label for="webhook-secret">Webhook Secret (Optional)</label>
+                    <input type="text" id="webhook-secret" placeholder="Leave empty if not configured">
+                    <div class="help-text">X-Webhook-Secret header value (if WEBHOOK_SHARED_SECRET is set)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="webhook-event-id">Event ID</label>
+                    <input type="text" id="webhook-event-id" value="test_event_12345" placeholder="test_event_12345">
+                    <div class="help-text">X-Clockify-Event-Id header for idempotency testing</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="webhook-payload">Webhook Payload (JSON)</label>
+                    <textarea id="webhook-payload" style="min-height: 200px;">{
+  "id": "entry123",
+  "userId": "user123",
+  "workspaceId": "ws123",
+  "description": "Test time entry",
+  "timeInterval": {
+    "start": "2024-01-15T10:00:00Z",
+    "end": "2024-01-15T12:00:00Z"
+  },
+  "projectId": "proj123"
+}</textarea>
+                    <div class="help-text">Clockify webhook event payload</div>
+                </div>
+
+                <button onclick="testWebhook()">Send Webhook</button>
+
+                <div id="webhook-response" class="response" style="display: none;">
+                    <pre></pre>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Clankerbot v0.2.0 | <a href="https://github.com/your-org/clankerbot" target="_blank">Documentation</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // Parser test
+        async function testParser() {
+            const apiUrl = document.getElementById('parser-api-url').value.trim();
+            const text = document.getElementById('parser-text').value.trim();
+            const useLlm = document.getElementById('parser-llm').checked;
+            const responseEl = document.getElementById('parser-response');
+            const responsePreEl = responseEl.querySelector('pre');
+
+            if (!apiUrl || !text) {
+                showResponse(responseEl, responsePreEl, 'Please fill in all fields', 'error');
+                return;
+            }
+
+            const url = useLlm ? `${apiUrl}/actions/parse?llm=true` : `${apiUrl}/actions/parse`;
+            const payload = { text };
+
+            showResponse(responseEl, responsePreEl, 'Loading...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const formatted = JSON.stringify(data, null, 2);
+                const className = response.ok ? 'success' : 'error';
+                showResponse(responseEl, responsePreEl, formatted, className);
+            } catch (error) {
+                showResponse(responseEl, responsePreEl, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Action runner test
+        async function testAction() {
+            const apiUrl = document.getElementById('action-api-url').value.trim();
+            const integration = document.getElementById('action-integration').value;
+            const operation = document.getElementById('action-operation').value;
+            const paramsText = document.getElementById('action-params').value.trim();
+            const responseEl = document.getElementById('action-response');
+            const responsePreEl = responseEl.querySelector('pre');
+
+            if (!apiUrl) {
+                showResponse(responseEl, responsePreEl, 'Please fill in API URL', 'error');
+                return;
+            }
+
+            let params;
+            try {
+                params = JSON.parse(paramsText);
+            } catch (error) {
+                showResponse(responseEl, responsePreEl, `Invalid JSON in parameters: ${error.message}`, 'error');
+                return;
+            }
+
+            const url = `${apiUrl}/actions/run`;
+            const payload = { integration, operation, params };
+
+            showResponse(responseEl, responsePreEl, 'Loading...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const formatted = JSON.stringify(data, null, 2);
+                const className = response.ok ? 'success' : 'error';
+                showResponse(responseEl, responsePreEl, formatted, className);
+            } catch (error) {
+                showResponse(responseEl, responsePreEl, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Webhook sender test
+        async function testWebhook() {
+            const apiUrl = document.getElementById('webhook-api-url').value.trim();
+            const secret = document.getElementById('webhook-secret').value.trim();
+            const eventId = document.getElementById('webhook-event-id').value.trim();
+            const payloadText = document.getElementById('webhook-payload').value.trim();
+            const responseEl = document.getElementById('webhook-response');
+            const responsePreEl = responseEl.querySelector('pre');
+
+            if (!apiUrl || !eventId || !payloadText) {
+                showResponse(responseEl, responsePreEl, 'Please fill in API URL, Event ID, and Payload', 'error');
+                return;
+            }
+
+            let payload;
+            try {
+                payload = JSON.parse(payloadText);
+            } catch (error) {
+                showResponse(responseEl, responsePreEl, `Invalid JSON in payload: ${error.message}`, 'error');
+                return;
+            }
+
+            const url = `${apiUrl}/webhooks/clockify`;
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-Clockify-Event-Id': eventId
+            };
+
+            if (secret) {
+                headers['X-Webhook-Secret'] = secret;
+            }
+
+            showResponse(responseEl, responsePreEl, 'Loading...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                const formatted = JSON.stringify(data, null, 2);
+                const className = response.ok ? 'success' : 'error';
+                showResponse(responseEl, responsePreEl, formatted, className);
+            } catch (error) {
+                showResponse(responseEl, responsePreEl, `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Helper function to show responses
+        function showResponse(containerEl, preEl, text, className) {
+            containerEl.style.display = 'block';
+            containerEl.className = `response ${className}`;
+            preEl.textContent = text;
+        }
+
+        // Update params placeholder based on selected operation
+        function updateParamsPlaceholder() {
+            const operation = document.getElementById('action-operation').value;
+            const paramsEl = document.getElementById('action-params');
+            const helpEl = document.getElementById('params-help');
+
+            const examples = {
+                'get_user': { text: '{}', help: 'No parameters required' },
+                'list_workspaces': { text: '{}', help: 'No parameters required' },
+                'get_workspace': {
+                    text: '{\n  "workspaceId": "your_workspace_id"\n}',
+                    help: 'Requires: workspaceId'
+                },
+                'list_clients': {
+                    text: '{\n  "workspaceId": "your_workspace_id"\n}',
+                    help: 'Requires: workspaceId'
+                },
+                'create_client': {
+                    text: '{\n  "workspaceId": "your_workspace_id",\n  "body": {\n    "name": "New Client",\n    "archived": false\n  }\n}',
+                    help: 'Requires: workspaceId, body (name, archived)'
+                },
+                'list_projects': {
+                    text: '{\n  "workspaceId": "your_workspace_id"\n}',
+                    help: 'Requires: workspaceId'
+                },
+                'create_project': {
+                    text: '{\n  "workspaceId": "your_workspace_id",\n  "body": {\n    "name": "New Project",\n    "clientId": "client_id",\n    "isPublic": false,\n    "color": "#FF5733"\n  }\n}',
+                    help: 'Requires: workspaceId, body (name, clientId, isPublic, color)'
+                },
+                'create_time_entry': {
+                    text: '{\n  "workspaceId": "your_workspace_id",\n  "body": {\n    "start": "2024-01-15T10:00:00Z",\n    "end": "2024-01-15T12:00:00Z",\n    "description": "Working on task",\n    "projectId": "project_id",\n    "billable": true\n  }\n}',
+                    help: 'Requires: workspaceId, body (start, end, description, projectId, billable)'
+                }
+            };
+
+            const example = examples[operation] || { text: '{}', help: 'Parameters as JSON object' };
+            paramsEl.value = example.text;
+            helpEl.textContent = example.help;
+        }
+
+        // Update operation help when integration changes
+        function updateOperationHelp() {
+            // Reset to default operation
+            document.getElementById('action-operation').selectedIndex = 0;
+            updateParamsPlaceholder();
+        }
+
+        // Initialize
+        updateParamsPlaceholder();
+    </script>
+</body>
+</html>
